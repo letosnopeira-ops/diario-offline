@@ -1,0 +1,1354 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Diário de Progresso — Offline (v5.5.10)</title>
+<style>
+:root{--bg:#f8fafc;--card:#fff;--fg:#0f172a;--mut:#475569;--pri:#0f172a;--sec:#e2e8f0;--danger:#ef4444;--ok:#16a34a}
+*{box-sizing:border-box} body{margin:0;background:linear-gradient(to bottom,#fff,var(--bg));color:var(--fg);font:14px system-ui,Segoe UI,Roboto,Arial}
+h1,h2{margin:12px 0} .hidden{display:none} .muted{color:var(--mut)}
+.container{max-width:1000px;margin:0 auto;padding:16px}
+.card{background:var(--card);border:1px solid var(--sec);border-radius:14px;padding:12px;margin:8px 0}
+input,textarea,button,select{font:inherit}
+input,textarea,select{width:100%;padding:8px 10px;border:1px solid var(--sec);border-radius:10px;outline:none}
+button,.btn{padding:8px 12px;border-radius:10px;border:1px solid var(--pri);background:var(--pri);color:#fff;cursor:pointer}
+button.secondary,.btn.secondary{border-color:var(--sec);background:#fff;color:#000}
+button.danger{background:var(--danger);border-color:var(--danger)}
+button.ghost{background:transparent;border:1px dashed var(--sec);color:#0f172a}
+.row{display:flex;gap:8px;align-items:center;flex-wrap:wrap}
+.grid{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.grid.three{grid-template-columns:repeat(3,1fr)}
+.grid.four{grid-template-columns:repeat(4,1fr)}
+.grid.six{grid-template-columns:repeat(6,1fr)}
+.tabs{display:flex;gap:8px;margin:10px 0;flex-wrap:wrap}
+.tabs>button{background:#fff;color:#000;border:1px solid var(--sec)}
+.tabs>button.active{background:var(--pri);color:#fff;border-color:var(--pri)}
+.tab{display:none}.tab.active{display:block}
+.compare{position:relative;max-width:100%;height:260px;border:1px solid var(--sec);border-radius:14px;overflow:hidden;background:#f1f5f9;margin-top:8px}
+.compare img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover}
+#after-wrap{position:absolute;inset:0;overflow:hidden;width:50%}
+#slider{position:absolute;left:8px;right:8px;bottom:8px}
+.mono{font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:12px;background:#f8fafc;border:1px solid var(--sec);padding:10px;border-radius:10px;white-space:pre-wrap}
+#grid-mes table{width:100%;border-collapse:collapse}
+#grid-mes th,#grid-mes td{border-top:1px solid var(--sec);padding:6px;font-size:13px}
+#grid-mes th{background:#f1f5f9;text-align:left}
+label{display:block} details>summary{cursor:pointer;margin:6px 0}
+.stat{background:#f1f5f9;border:1px solid var(--sec);border-radius:12px;padding:10px}
+.progress{height:12px;border-radius:999px;background:#e2e8f0;overflow:hidden}
+.progress>span{display:block;height:100%;background:linear-gradient(90deg,var(--ok),#22c55e);width:0%}
+.progress-caption{font-size:12px;color:#334155;margin-top:4px}
+.album-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(120px,1fr));gap:10px}
+.thumb{position:relative;border:1px solid var(--sec);border-radius:10px;overflow:hidden;background:#f1f5f9}
+.thumb img{width:100%;height:120px;object-fit:cover;display:block}
+.thumb .bar{position:absolute;inset:auto 0 0 0;background:rgba(0,0,0,0.55);color:#fff;font-size:12px;padding:2px 6px;display:flex;justify-content:space-between;align-items:center}
+.thumb button{background:transparent;border:none;color:#fff;cursor:pointer}
+canvas{width:100%;height:300px;border:1px solid var(--sec);border-radius:10px;background:#fff}
+.badge{display:inline-block;padding:2px 8px;border-radius:999px;font-size:12px}
+.badge.ok{background:#dcfce7;color:#166534;border:1px solid #86efac}
+.badge.no{background:#fee2e2;color:#991b1b;border:1px solid #fecaca}
+footer{margin:24px 0 8px 0; font-size:12px; color:var(--mut); text-align:center}
+</style>
+</head>
+<body>
+<div class="container">
+  <header class="row" style="justify-content:space-between;align-items:center">
+    <h1 style="margin:0">Diário de Progresso — Offline (v5.5.10)</h1>
+    <button class="secondary" id="aboutBtn">Ajuda</button>
+  </header>
+
+  <section id="gate" class="card">
+    <h2>Proteção por PIN</h2>
+    <div id="pin-setup" class="card hidden">
+      <p>Defina um PIN para proteger seus dados (fotos e registros ficam criptografados no aparelho).</p>
+      <input id="pin1" type="password" placeholder="PIN" maxlength="12">
+      <input id="pin2" type="password" placeholder="Confirmar PIN" maxlength="12">
+      <div class="row"><button id="savePinBtn">Salvar PIN</button></div>
+    </div>
+    <div id="pin-login" class="card hidden">
+      <input id="pin-login-input" type="password" placeholder="Digite seu PIN" maxlength="12">
+      <div class="row"><button id="unlockBtn">Desbloquear</button></div>
+    </div>
+    <p class="muted">Atenção: sem o PIN correto, os dados não podem ser recuperados.</p>
+  </section>
+
+  <section id="content" class="hidden">
+    <nav class="tabs">
+      <button data-tab="registro" class="active">Registro</button>
+      <button data-tab="bulking">Bulking</button>
+      <button data-tab="mes">Mês</button>
+      <button data-tab="fotos">Fotos</button>
+      <button data-tab="album">Galeria</button>
+      <button data-tab="graficos">Gráficos</button>
+      <button data-tab="semanal">Semanal</button>
+      <button data-tab="relatorio">Relatório</button>
+      <button data-tab="mensal">Mensal</button>
+      <button data-tab="semestral">Semestral</button>
+      <button data-tab="backup">Backup</button>
+    </nav>
+
+    <div id="tab-registro" class="tab active card">
+      <div class="grid three">
+        <label>Data <input id="date" type="date"></label>
+        <label>Peso (kg) <input id="peso" type="number" step="0.01"></label>
+        <div class="stat">
+          <div style="font-weight:600;margin-bottom:6px">Água (mL) — hoje</div>
+
+      <div class="stat" id="reg-bulk">
+        <div style="font-weight:600;margin-bottom:6px">Meta de peso</div>
+        <div class="row" style="align-items:center">
+          <label style="flex:1">Meta (kg) <input id="reg_target" type="number" step="0.01" placeholder="ex.: 86.0"></label>
+          <button class="ghost" id="reg_save_target">Salvar meta</button>
+        </div>
+        <div id="reg_bulk_info" class="muted">Semanas restantes: —</div>
+      </div>
+
+          <div class="row" style="margin-bottom:6px">
+            <input id="agua" type="number" step="50" min="0" placeholder="0">
+            <button class="ghost" id="add150">+150</button>
+            <button class="ghost" id="add200">+200</button>
+            <button class="ghost" id="add250">+250</button>
+            <button class="ghost" id="add500">+500</button>
+            <button class="secondary" id="zerarAgua">Zerar</button>
+          </div>
+          <div class="row" style="align-items:center">
+            <label style="flex:1">Meta diária (mL) <input id="aguaGoal" type="number" step="50" min="0" placeholder="ex.: 2500"></label>
+            <button class="ghost" id="sugerirMeta">Sugerir pelo peso d-1</button>
+          </div>
+          <div class="progress" title="Progresso de água">
+            <span id="aguaProg"></span>
+          </div>
+          <div class="progress-caption" id="aguaCaption">0 / 0 mL (0%)</div>
+        </div>
+      </div>
+
+      <div class="row">
+        <label><input id="minox_am" type="checkbox"> Minoxidil — manhã</label>
+        <label><input id="minox_pm" type="checkbox"> Minoxidil — noite</label>
+        <label><input id="creatina" type="checkbox"> Creatina</label>
+        <label><input id="albumina" type="checkbox"> Albumina</label>
+      </div>
+
+      <details>
+        <summary>Dobras cutâneas (mm)</summary>
+        <div class="grid six">
+          <label>Peitoral <input id="sk_peitoral" type="number" step="0.1"></label>
+          <label>Abdômen  <input id="sk_abdomen" type="number" step="0.1"></label>
+          <label>Coxa     <input id="sk_coxa" type="number" step="0.1"></label>
+          <label>Tríceps  <input id="sk_triceps" type="number" step="0.1"></label>
+          <label>Subescap <input id="sk_subescapular" type="number" step="0.1"></label>
+          <label>Supra-il <input id="sk_suprailiaca" type="number" step="0.1"></label>
+        </div>
+      </details>
+
+      <details>
+        <summary>Medidas corporais (cm)</summary>
+        <div class="grid six">
+          <label>Tórax <input id="m_torax" type="number" step="0.1"></label>
+          <label>Cintura <input id="m_cintura" type="number" step="0.1"></label>
+          <label>Quadril <input id="m_quadril" type="number" step="0.1"></label>
+          <label>Braço <input id="m_braco" type="number" step="0.1"></label>
+          <label>Antebraço <input id="m_antebraco" type="number" step="0.1"></label>
+          <label>Coxa <input id="m_coxa" type="number" step="0.1"></label>
+          <label>Panturrilha <input id="m_panturrilha" type="number" step="0.1"></label>
+        </div>
+      </details>
+
+      <label>Observações <textarea id="notes" rows="3"></textarea></label>
+      <div class="row">
+        <button id="saveDayBtn">Salvar</button>
+        <button class="secondary" id="todayBtn">Hoje</button>
+        <button class="danger" id="wipeBtn">Apagar tudo</button>
+      </div>
+    </div>
+
+    <div id="tab-bulking" class="tab card">
+      <h3 style="margin-top:0">Meta do Bulking</h3>
+      <div class="grid three">
+        <label>Peso-alvo (kg) <input id="b_target" type="number" step="0.01" placeholder="ex.: 86.0"></label>
+        <label>Coeficiente semanal (%) <input id="b_coef" type="number" step="0.01" min="0.1" max="2" placeholder="0,5"></label>
+        <label>Referência
+          <select id="b_refmode">
+            <option value="prev_week">Semana anterior</option>
+            <option value="baseline">Peso-base</option>
+          </select>
+        </label>
+      </div>
+      <div class="grid three">
+        <label>Peso-base (opcional) <input id="b_baseline" type="number" step="0.01" placeholder="se usar 'Peso-base'"></label>
+        <div></div><div></div>
+      </div>
+      <div class="stat" id="b_card">
+        <div style="font-weight:600;margin-bottom:6px">Semana atual</div>
+        <div id="b_summary" class="mono">Calculando…</div>
+      </div>
+
+      <div class="card">
+        <div class="row" style="justify-content:space-between;align-items:center">
+          <h3 style="margin:0">Relatório da Semana (Bulking)</h3>
+          <label style="max-width:220px">Dia de referência <input id="b_refday" type="date"></label>
+        </div>
+        <div class="row">
+          <button class="secondary" id="b_copy">Copiar</button>
+          <button id="b_down">Baixar .md</button>
+        </div>
+        <div id="b_report" class="mono">Gerando…</div>
+      </div>
+
+      <div class="row">
+        <button id="b_save" class="secondary">Salvar configurações</button>
+        <button id="b_reset" class="ghost">Limpar (voltar padrão)</button>
+      </div>
+      <p class="muted">Estimativas baseadas na média da semana e no coeficiente escolhido.</p>
+    </div>
+
+    <div id="tab-mes" class="tab card">
+      <label>Mês <input id="mes" type="month"></label>
+      <div id="grid-mes"></div>
+    </div>
+
+    <div id="tab-fotos" class="tab card">
+      <label>Mês <input id="foto-mes" type="month"></label>
+      <div class="row">
+        <label class="btn secondary">Antes (frente) <input id="bf" type="file" accept="image/*" hidden></label>
+        <label class="btn secondary">Depois (frente) <input id="af" type="file" accept="image/*" hidden></label>
+      </div>
+      <div class="compare">
+        <img id="img-before" alt="antes">
+        <div id="after-wrap"><img id="img-after" alt="depois"></div>
+        <input id="slider" type="range" min="0" max="100" value="50">
+      </div>
+    </div>
+
+    <div id="tab-album" class="tab card">
+      <div class="row">
+        <label style="max-width:220px">Mês do álbum <input id="album-mes" type="month"></label>
+        <label class="btn">Adicionar fotos <input id="album-add" type="file" accept="image/*" multiple hidden></label>
+        <button class="danger" id="album-clear">Apagar tudo do mês</button>
+      </div>
+      <div class="album-grid" id="album-grid"></div>
+      <p class="muted">Dica: organize as fotos de evolução por mês. Exclua o que não quiser manter.</p>
+    </div>
+
+    <div id="tab-graficos" class="tab card">
+      <div class="row">
+        <label style="max-width:220px">Mês <input id="chart-mes" type="month"></label>
+        <label style="max-width:260px">Métrica
+          <select id="chart-metric">
+            <option value="weight">Peso (kg)</option>
+            <option value="sumSkinfolds">Soma das dobras (mm)</option>
+            <option value="m_torax">Tórax (cm)</option>
+            <option value="m_cintura">Cintura (cm)</option>
+            <option value="m_quadril">Quadril (cm)</option>
+            <option value="m_braco">Braço (cm)</option>
+            <option value="m_antebraco">Antebraço (cm)</option>
+            <option value="m_coxa">Coxa (cm)</option>
+            <option value="m_panturrilha">Panturrilha (cm)</option>
+          </select>
+        </label>
+      </div>
+      <canvas id="chart"></canvas>
+    </div>
+
+    <div id="tab-relatorio" class="tab card">
+      <label>Dia de referência <input id="ref-day" type="date"></label>
+      <div class="row">
+        <button class="secondary" id="copyReportBtn">Copiar relatório</button>
+        <button id="downloadReportBtn">Baixar .md</button>
+      </div>
+      <div class="mono" id="reportBox"></div>
+    </div>
+
+    <div id="tab-mensal" class="tab card">
+      <label>Mês <input id="mensal-mes" type="month"></label>
+      <div class="row">
+        <button class="secondary" id="copyMensalBtn">Copiar relatório mensal</button>
+        <button id="downloadMensalBtn">Baixar mensal .md</button>
+      </div>
+      <div class="mono" id="mensalBox"></div>
+    </div>
+
+    <div id="tab-semestral" class="tab card">
+      <div class="row" style="align-items:flex-end">
+        <label style="max-width:220px">Início <input id="sem-ini" type="month"></label>
+        <div class="muted">O período considera 6 meses completos a partir do mês inicial.</div>
+      </div>
+      <div class="row">
+        <button class="secondary" id="copySemBtn">Copiar relatório semestral</button>
+        <button id="downSemBtn">Baixar semestral .md</button>
+      </div>
+      <div class="mono" id="semBox"></div>
+    
+</div>
+
+    <div id="tab-semanal" class="tab card">
+      <div class="row" style="justify-content:space-between;align-items:center">
+        <h3 style="margin:0">Resumo Semanal</h3>
+        <label style="max-width:220px">Dia de referência <input id="sem-refday" type="date"></label>
+      </div>
+
+      <div class="grid three">
+        <div class="stat">
+          <div class="muted" style="font-weight:600;margin-bottom:6px">Água</div>
+          <div id="sem-agua">Calculando…</div>
+        </div>
+        <div class="stat">
+          <div class="muted" style="font-weight:600;margin-bottom:6px">Suplementos</div>
+          <div id="sem-sups">Calculando…</div>
+        </div>
+        <div class="stat">
+          <div class="muted" style="font-weight:600;margin-bottom:6px">Minoxidil</div>
+          <div id="sem-minox">Calculando…</div>
+        </div>
+      </div>
+
+      <div class="stat" id="sem-bulk" style="margin-top:10px">
+        <div style="font-weight:600;margin-bottom:6px">Bulking — Semana</div>
+        <div id="sem-bulk-box" class="mono">Calculando…</div>
+      </div>
+
+      <div class="row">
+        <button class="secondary" id="sem-copy">Copiar resumo</button>
+        <button id="sem-down">Baixar .md</button>
+      </div>
+      <div class="mono" id="sem-md"></div>
+    </div>
+</div>
+
+    <div id="tab-backup" class="tab card">
+      <div class="row">
+        <button class="secondary" id="exportBtn">Exportar backup (.dpb)</button>
+        <label class="btn">Importar backup <input id="import" type="file" accept=".dpb" hidden></label>
+      </div>
+      <p class="muted">O backup é <b>criptografado</b> pelo seu PIN e permanece no aparelho.</p>
+    </div>
+  </section>
+
+  <footer>Versão offline local • Seus dados ficam apenas no seu dispositivo</footer>
+</div>
+
+<script>
+// Utils extras
+function shortDM(iso){ if(!iso||iso.length<10) return iso||''; return iso.slice(8,10)+'/'+iso.slice(5,7); }
+function longestStreak(arr){ let max=0,curr=0; for(const v of arr){ if(v){ curr++; if(curr>max) max=curr; } else curr=0; } return {max, current: curr}; }
+function compactList(arr, limit){ limit = limit||10; if(!arr||!arr.length) return '—'; return arr.length<=limit? arr.join(', ') : (arr.slice(0,limit).join(', ') + ' +'+(arr.length-limit)); }
+function bar(value,total,width){ width=width||20; if(total<=0) return '['+'-'*width+']'; const fill=Math.round((value/total)*width); return '[' + '#'.repeat(fill) + '-'.repeat(Math.max(0,width-fill)) + ']'; }
+
+// Utilidades
+const $ = sel => document.querySelector(sel);
+const $$ = sel => Array.from(document.querySelectorAll(sel));
+const todayISO = () => new Date().toISOString().slice(0,10);
+function addDays(iso, delta){ const d = new Date(iso); d.setDate(d.getDate()+delta); return d.toISOString().slice(0,10); }
+function startOfWeek(d){ const dt=new Date(Date.UTC(d.getFullYear(),d.getMonth(),d.getDate())); const day=dt.getUTCDay(); const diff=((day===0)?-6:1)-day; dt.setUTCDate(dt.getUTCDate()+diff); return dt; }
+function endOfWeek(d){ const s=startOfWeek(d); const e=new Date(s); e.setUTCDate(e.getUTCDate()+6); return e; }
+function fmtDate(d){ return d.toISOString().slice(0,10); }
+function daysInMonth(ym){ const [y,m]=ym.split('-').map(Number); return new Date(y,m,0).getDate(); }
+function toB64(bytes){ let bin=''; const u8 = (bytes instanceof Uint8Array)? bytes: new Uint8Array(bytes); for(let i=0;i<u8.length;i++) bin += String.fromCharCode(u8[i]); return btoa(bin); }
+function fromB64(b64){ return Uint8Array.from(atob(b64), c => c.charCodeAt(0)); }
+
+// IndexedDB
+const DB='dp_vault', STORE='kv';
+let db=null;
+function idbOpen(){ return new Promise((res,rej)=>{ const r=indexedDB.open(DB,1); r.onupgradeneeded=()=> r.result.createObjectStore(STORE); r.onsuccess=()=>res(r.result); r.onerror=()=>rej(r.error); }); }
+function idbGet(k){ return new Promise((res,rej)=>{ const t=db.transaction(STORE,'readonly').objectStore(STORE).get(k); t.onsuccess=()=>res(t.result); t.onerror=()=>rej(t.error); }); }
+function idbSet(k,v){ return new Promise((res,rej)=>{ const t=db.transaction(STORE,'readwrite').objectStore(STORE).put(v,k); t.onsuccess=()=>res(); t.onerror=()=>rej(t.error); }); }
+function idbKeys(){ return new Promise((res,rej)=>{ const ks=[]; const t=db.transaction(STORE,'readonly').objectStore(STORE).openKeyCursor(); t.onsuccess=()=>{ const c=t.result; if(c){ks.push(String(c.key)); c.continue(); } else res(ks); }; t.onerror=()=>rej(t.error); }); }
+function idbClear(){ return new Promise((res,rej)=>{ const t=db.transaction(STORE,'readwrite').objectStore(STORE).clear(); t.onsuccess=()=>res(); t.onerror=()=>rej(t.error); }); }
+
+// Cripto
+const KDF = { iters: 200000, hash: 'SHA-256' };
+let gKey = null; // CryptoKey
+let kdfSalt = null; // Uint8Array
+
+async function deriveKey(pin, saltBuf){
+  const baseKey = await crypto.subtle.importKey('raw', new TextEncoder().encode(pin), 'PBKDF2', false, ['deriveKey']);
+  return crypto.subtle.deriveKey(
+    { name:'PBKDF2', salt: saltBuf, iterations: KDF.iters, hash: KDF.hash },
+    baseKey, { name:'AES-GCM', length:256 }, false, ['encrypt','decrypt']
+  );
+}
+async function vaultSet(name, obj){
+  const iv = crypto.getRandomValues(new Uint8Array(12));
+  const ct = await crypto.subtle.encrypt({name:'AES-GCM', iv}, gKey, new TextEncoder().encode(JSON.stringify(obj)));
+  await idbSet(name, JSON.stringify({iv:toB64(iv), ct:toB64(ct)}));
+}
+async function vaultGet(name, fallback=null){
+  const raw = await idbGet(name); if(!raw) return fallback;
+  const {iv, ct} = JSON.parse(raw);
+  const pt = await crypto.subtle.decrypt({name:'AES-GCM', iv:fromB64(iv)}, gKey, fromB64(ct));
+  return JSON.parse(new TextDecoder().decode(pt));
+}
+
+// Água — meta sugerida por peso do dia anterior
+function suggestWaterGoal(iso, logs){
+  const prev = logs[addDays(iso,-1)];
+  const w = prev?.weight;
+  if(typeof w === 'number' && w>0){
+    return Math.round(w * 35); // 35 mL/kg
+  }
+  return 2000; // fallback
+}
+
+function sumSkinfolds(rec){
+  const s = rec?.skinfolds||{};
+  let tot = 0;
+  ['peitoral','abdomen','coxa','triceps','subescapular','suprailiaca'].forEach(k=>{ if(typeof s[k]==='number') tot += s[k]; });
+  return tot>0? tot: null;
+}
+
+function mean(nums){
+  const v = nums.filter(x => typeof x === 'number' && !isNaN(x));
+  if(!v.length) return null;
+  return v.reduce((a,b,)=>a+b,0)/v.length;
+}
+
+// Bulking settings
+const defaultSettings = {
+  bulkingCoef: 0.005,             // 0,5% por semana
+  bulkingRefMode: 'prev_week',    // 'prev_week' | 'baseline'
+  bulkingBaseline: null,          // kg (opcional)
+  bulkingTarget: null             // kg (definido pelo usuário)
+};
+
+async function loadSettings(){
+  const s = await vaultGet('settings', null);
+  return Object.assign({}, defaultSettings, s||{});
+}
+async function saveSettings(s){ await vaultSet('settings', s); }
+
+// Pesos por semana
+function weekRangeByDate(iso){
+  const d = new Date(iso);
+  const s = startOfWeek(d);
+  const e = endOfWeek(d);
+  return {sISO: fmtDate(s), eISO: fmtDate(e)};
+}
+function isoDaysBetween(sISO, eISO){
+  const days=[]; const s=new Date(sISO); const e=new Date(eISO);
+  for(let dt=new Date(s); dt<=e; dt.setDate(dt.getDate()+1)){ days.push(dt.toISOString().slice(0,10)); }
+  return days;
+}
+function weekAverageWeight(weekISO, logs){
+  const {sISO, eISO} = weekISO;
+  const days = isoDaysBetween(sISO, eISO);
+  const values = days.map(d=> logs[d]?.weight).filter(v=> typeof v==='number');
+  const avg = mean(values);
+  const count = values.length;
+  return {avg, count};
+}
+function previousWeekISO(weekISO){
+  const s = new Date(weekISO.sISO); s.setDate(s.getDate()-7);
+  const e = new Date(weekISO.eISO); e.setDate(e.getDate()-7);
+  return {sISO: s.toISOString().slice(0,10), eISO: e.toISOString().slice(0,10)};
+}
+
+// Bulking compute
+function computeBulking(iso, logs, settings){
+  const wk = weekRangeByDate(iso);
+  const prevWk = previousWeekISO(wk);
+  const cur = weekAverageWeight(wk, logs);     // média atual
+  const prev = weekAverageWeight(prevWk, logs);// média anterior
+  let ref = null;
+  if(settings.bulkingRefMode==='prev_week') ref = prev.avg;
+  else ref = (typeof settings.bulkingBaseline==='number' ? settings.bulkingBaseline : prev.avg);
+  const coef = Number(settings.bulkingCoef||0);
+  const target = (typeof settings.bulkingTarget==='number' ? settings.bulkingTarget : null);
+
+  const metaSemana = (typeof ref==='number') ? ref * (1 + coef) : null;
+  const bateu = (typeof cur.avg==='number' && typeof metaSemana==='number') ? (cur.avg >= metaSemana) : null;
+  const delta = (typeof cur.avg==='number' && typeof ref==='number') ? (cur.avg - ref) : null;
+  const deltaPct = (typeof delta==='number' && typeof ref==='number' && ref!==0) ? (delta / ref) : null;
+
+  // semanas restantes (estimativa)
+  let semanasRestantes = null;
+  if (typeof target==='number' && typeof cur.avg==='number' && typeof ref==='number' && coef>0){
+    const gRest = target - cur.avg;
+    const gSem = ref * coef;
+    if (gRest <= 0) semanasRestantes = 0;
+    else if (gSem > 0) semanasRestantes = Math.ceil(gRest / gSem);
+  }
+
+  return { wk, prevWk, cur, prev, ref, coef, target, metaSemana, bateu, delta, deltaPct, semanasRestantes };
+}
+
+function formatKg(x){ return (typeof x==='number') ? x.toFixed(2)+' kg' : '—'; }
+function formatPct(x){ return (typeof x==='number') ? (x*100).toFixed(2)+'%' : '—'; }
+
+async function renderBulkingCard(){
+  const logs = await vaultGet('logs', {});
+  const settings = await loadSettings();
+  const refISO = $('#b_refday').value || $('#ref-day').value || todayISO();
+  const r = computeBulking(refISO, logs, settings);
+  function line(label, val){ return label+': '+val+'\\n'; }
+
+  let txt = '';
+  txt += line('Semana', r.wk.sISO + ' a ' + r.wk.eISO);
+  txt += line('Média da semana (só dias pesados)', (r.cur.count>=1? formatKg(r.cur.avg): 'sem pesagens'));
+  txt += line('Pesagens na semana', r.cur.count ?? 0);
+  txt += line('Referência ('+(settings.bulkingRefMode==='prev_week'?'semana anterior':'peso-base')+')', formatKg(r.ref));
+  txt += line('Coeficiente semanal', (r.coef*100).toFixed(2)+'%');
+  txt += line('Meta desta semana', formatKg(r.metaSemana));
+  txt += line('Δ vs referência', (typeof r.delta==='number'? (r.delta>=0?'+':'')+r.delta.toFixed(2)+' kg ('+(r.deltaPct>=0?'+':'')+ (r.deltaPct*100).toFixed(2)+'%)' : '—'));
+  if(typeof r.bateu==='boolean'){
+    txt += 'Status: ' + (r.bateu? 'Atingida ✔️' : 'Não atingida ❌') + '\\n';
+  } else {
+    txt += 'Status: —\\n';
+  }
+  txt += line('Peso-alvo', (typeof r.target==='number'? r.target.toFixed(2)+' kg' : 'defina em Configurações'));
+  if(r.semanasRestantes===0) txt += 'Semanas restantes: Meta alcançada ✅\\n';
+  else if(typeof r.semanasRestantes==='number') txt += 'Semanas restantes (estimativa): '+r.semanasRestantes+'\\n';
+  else txt += 'Semanas restantes: — (defina peso-alvo)\\n';
+
+  $('#b_summary').textContent = txt;
+                    (r.bateu===false) ? '<span class="badge no">Não atingida</span>' : '';
+  document.querySelector('#b_card div').innerHTML = 'Semana atual ' + ((r.bateu===true)?'<span class="badge ok">Atingida</span>':(r.bateu===false)?'<span class="badge no">Não atingida</span>':'');
+  await renderBulkingReportBox();
+}
+
+
+function addWater(delta){
+  const cur = Number($('#agua').value||0);
+  $('#agua').value = Math.max(0, cur + Number(delta||0));
+  refreshWaterProgress();
+}
+
+// Registro diário
+function refreshWaterProgress(){
+  const total = Number($('#agua').value||0);
+  const goal = Math.max(0, Number($('#aguaGoal').value||0));
+  const pct = goal>0 ? Math.min(100, Math.round(total*100/goal)) : 0;
+  $('#aguaProg').style.width = pct + '%';
+  $('#aguaCaption').textContent = total + ' / ' + goal + ' mL (' + pct + '%)';
+}
+
+async function loadDay(iso){
+  const logs = await vaultGet('logs', {});
+  const d = logs[iso] || {};
+  $('#date').value = iso;
+  $('#peso').value = d.weight ?? '';
+  $('#minox_am').checked = !!d.minoxidilMorning;
+  $('#minox_pm').checked = !!d.minoxidilNight;
+  $('#creatina').checked = !!d.creatina;
+  $('#albumina').checked = !!d.albumina;
+  $('#agua').value = d.waterMl ?? 0;
+  $('#aguaGoal').value = (typeof d.waterGoalMl === 'number') ? d.waterGoalMl : suggestWaterGoal(iso, logs);
+  refreshWaterProgress();
+  $('#notes').value = d.notes || '';
+  ['peitoral','abdomen','coxa','triceps','subescapular','suprailiaca'].forEach(k => $('#sk_'+k).value = (d.skinfolds||{})[k] ?? '');
+  ['torax','cintura','quadril','braco','antebraco','coxa','panturrilha'].forEach(k => $('#m_'+k).value = (d.measures||{})[k] ?? '');
+}
+
+async function saveDay(){
+  const iso = $('#date').value || todayISO();
+  const logs = await vaultGet('logs', {});
+  logs[iso] = {
+    date: iso,
+    weight: $('#peso').value? Number($('#peso').value): undefined,
+    minoxidilMorning: $('#minox_am').checked,
+    minoxidilNight:   $('#minox_pm').checked,
+    creatina: $('#creatina').checked,
+    albumina: $('#albumina').checked,
+    waterMl: $('#agua').value? Number($('#agua').value): 0,
+    waterGoalMl: $('#aguaGoal').value? Number($('#aguaGoal').value): undefined,
+    notes: $('#notes').value || undefined,
+    skinfolds: {
+      peitoral: $('#sk_peitoral').value? Number($('#sk_peitoral').value): undefined,
+      abdomen:  $('#sk_abdomen').value? Number($('#sk_abdomen').value): undefined,
+      coxa:     $('#sk_coxa').value? Number($('#sk_coxa').value): undefined,
+      triceps:  $('#sk_triceps').value? Number($('#sk_triceps').value): undefined,
+      subescapular: $('#sk_subescapular').value? Number($('#sk_subescapular').value): undefined,
+      suprailiaca:  $('#sk_suprailiaca').value? Number($('#sk_suprailiaca').value): undefined,
+    },
+    measures: {
+      torax: $('#m_torax').value? Number($('#m_torax').value): undefined,
+      cintura: $('#m_cintura').value? Number($('#m_cintura').value): undefined,
+      quadril: $('#m_quadril').value? Number($('#m_quadril').value): undefined,
+      braco: $('#m_braco').value? Number($('#m_braco').value): undefined,
+      antebraco: $('#m_antebraco').value? Number($('#m_antebraco').value): undefined,
+      coxa: $('#m_coxa').value? Number($('#m_coxa').value): undefined,
+      panturrilha: $('#m_panturrilha').value? Number($('#m_panturrilha').value): undefined,
+    },
+    updatedAt: new Date().toISOString(),
+  };
+  await vaultSet('logs', logs);
+  await renderMonth($('#mes').value);
+  await renderBulkingCard();
+  await drawChart();
+  await renderSemanal();
+  await updateRegBulkInfo();
+}
+
+// Mês/grade rápida
+async function renderMonth(ym){
+  const logs = await vaultGet('logs', {});
+  if(!ym){ $('#grid-mes').innerHTML=''; return; }
+  const n = daysInMonth(ym);
+  let html = '<table><thead><tr><th>Data</th><th>Peso</th><th>Minox AM</th><th>Minox PM</th><th>Creat.</th><th>Alb.</th><th>Água (mL)</th></tr></thead><tbody>';
+  for(let i=1;i<=n;i++){
+    const d = String(i).padStart(2,'0');
+    const iso = ym + '-' + d;
+    const l = logs[iso] || {};
+    html += '<tr>'
+      + '<td class="mono">' + iso + '</td>'
+      + '<td><input data-iso="'+iso+'" class="w peso" type="number" step="0.01" value="'+(l.weight??'')+'"></td>'
+      + '<td class="c"><input data-iso="'+iso+'" class="w minox_am" type="checkbox" '+(l.minoxidilMorning?'checked':'')+'></td>'
+      + '<td class="c"><input data-iso="'+iso+'" class="w minox_pm" type="checkbox" '+(l.minoxidilNight?'checked':'')+'></td>'
+      + '<td class="c"><input data-iso="'+iso+'" class="w creat" type="checkbox" '+(l.creatina?'checked':'')+'></td>'
+      + '<td class="c"><input data-iso="'+iso+'" class="w alb" type="checkbox" '+(l.albumina?'checked':'')+'></td>'
+      + '<td><input data-iso="'+iso+'" class="w agua" type="number" step="50" value="'+(l.waterMl??0)+'"></td>'
+      + '</tr>';
+  }
+  html += '</tbody></table>';
+  const grid = $('#grid-mes');
+  grid.innerHTML = html;
+  grid.querySelectorAll('input.w').forEach(inp => {
+    inp.addEventListener('change', async (e)=>{
+      const t = e.target;
+      const iso = t.getAttribute('data-iso');
+      const logs = await vaultGet('logs', {});
+      const l = logs[iso] || {date: iso};
+      if(t.classList.contains('peso')) l.weight = t.value? Number(t.value): undefined;
+      if(t.classList.contains('minox_am')) l.minoxidilMorning = t.checked;
+      if(t.classList.contains('minox_pm')) l.minoxidilNight = t.checked;
+      if(t.classList.contains('creat')) l.creatina = t.checked;
+      if(t.classList.contains('alb')) l.albumina = t.checked;
+      if(t.classList.contains('agua')) l.waterMl = t.value? Number(t.value): 0;
+      l.updatedAt = new Date().toISOString();
+      logs[iso] = l;
+      await vaultSet('logs', logs);
+      await renderBulkingCard();
+    });
+  });
+}
+
+// Adesões e semana
+function adherenceWeek(targetISO, logs){
+  const d = new Date(targetISO);
+  const s = startOfWeek(d); const e = endOfWeek(d);
+  const days = []; for(let i=0;i<7;i++){ const dt=new Date(s); dt.setUTCDate(s.getUTCDate()+i); days.push(fmtDate(dt)); }
+  const by = {}; days.forEach(day => by[day] = logs[day] || {});
+  const creatDays = days.filter(dy => !!by[dy].creatina).length;
+  const albDays = days.filter(dy => !!by[dy].albumina).length;
+  const min2x = days.filter(dy => by[dy].minoxidilMorning && by[dy].minoxidilNight).length;
+  const min1x = days.filter(dy => (by[dy].minoxidilMorning ^ by[dy].minoxidilNight)).length;
+  const min0x = days.length - min2x - min1x;
+  const weights = days.map(dy => by[dy].weight).filter(v => typeof v==='number');
+  const avgW = mean(weights);
+  return {days, creatDays, albDays, min2x, min1x, min0x, avgW, weighCount: weights.length};
+}
+
+// Relatórios (inclui Meta do Bulking)
+function getGoalForDay(iso, logs){
+  const rec = logs[iso] || {};
+  if(typeof rec.waterGoalMl === 'number') return rec.waterGoalMl;
+  return suggestWaterGoal(iso, logs);
+}
+
+function weekReport(targetISO, logs, settings){
+  const d = new Date(targetISO);
+  const s = startOfWeek(d);
+  const e = endOfWeek(d);
+  const days = [];
+  for(let i=0;i<7;i++){ const dt=new Date(s); dt.setUTCDate(s.getUTCDate()+i); days.push(fmtDate(dt)); }
+  const byDay = {}; days.forEach(day => byDay[day] = logs[day]);
+
+  const comp = (k) => { const total=days.length; const ok=days.filter(dy=> !!byDay[dy]?.[k]).length; return {ok,total,pct: total? Math.round(ok*100/total):0}; };
+  const cMinAM=comp('minoxidilMorning'), cMinPM=comp('minoxidilNight');
+  const cCr=comp('creatina'), cAl=comp('albumina');
+
+  const min2x = days.filter(dy => !!byDay[dy]?.minoxidilMorning && !!byDay[dy]?.minoxidilNight).length;
+  const min1x = days.filter(dy => (!!byDay[dy]?.minoxidilMorning) ^ (!!byDay[dy]?.minoxidilNight)).length;
+
+  const weights = days.map(dy => byDay[dy]?.weight).filter(v => typeof v === 'number');
+  const avgW = mean(weights);
+  const weighCount = weights.length;
+
+  const waters  = days.map(dy => byDay[dy]?.waterMl || 0);
+  const goals   = days.map(dy => getGoalForDay(dy, logs));
+  const hits    = days.filter((dy,i)=> waters[i] >= goals[i]).length;
+
+  const avgGoal = Math.round(mean(goals) || 0);
+
+  // Meta do bulking (card => texto)
+  const r = computeBulking(targetISO, logs, settings);
+
+  let md = '# Relatório Semanal — ' + fmtDate(s) + ' a ' + fmtDate(e) + '\\n\\n';
+  md += '**Meta do Bulking**\\n';
+  md += '- Média da semana (só dias pesados): ' + (weighCount>=1? avgW.toFixed(2)+' kg' : 'sem pesagens') + '\\n';
+  md += '- Pesagens na semana: ' + weighCount + '\\n';
+  md += '- Referência ('+(settings.bulkingRefMode==='prev_week'?'semana anterior':'peso-base')+'): ' + (typeof r.ref==='number'? r.ref.toFixed(2)+' kg':'—') + '\\n';
+  md += '- Coeficiente semanal: ' + (r.coef*100).toFixed(2) + '%\\n';
+  md += '- Meta desta semana: ' + (typeof r.metaSemana==='number'? r.metaSemana.toFixed(2)+' kg':'—') + '\\n';
+  md += '- Δ vs referência: ' + (typeof r.delta==='number'? (r.delta>=0?'+':'')+r.delta.toFixed(2)+' kg ('+(r.deltaPct>=0?'+':'')+ (r.deltaPct*100).toFixed(2)+'%)':'—') + '\\n';
+  md += '- Status: ' + (r.bateu===true?'Atingida ✔️': r.bateu===false?'Não atingida ❌':'—') + '\\n';
+  md += '- Peso-alvo: ' + (typeof r.target==='number'? r.target.toFixed(2)+' kg':'defina nas Configurações') + '\\n';
+  md += (r.semanasRestantes===0? '- Semanas restantes: Meta alcançada ✅\\n' : (typeof r.semanasRestantes==='number'? '- Semanas restantes (estimativa): '+r.semanasRestantes+'\\n' : '- Semanas restantes: —\\n'));
+
+  md += '\\n**Adesão (semana)**\\n';
+  md += '- Minoxidil 2x/dia: ' + min2x + '/7\\n';
+  md += '- Minoxidil 1x/dia: ' + min1x + '/7\\n';
+  md += '- Minoxidil manhã: ' + cMinAM.ok + '/' + cMinAM.total + ' (' + cMinAM.pct + '%)\\n';
+  md += '- Minoxidil noite: ' + cMinPM.ok + '/' + cMinPM.total + ' (' + cMinPM.pct + '%)\\n';
+  md += '- Creatina: ' + cCr.ok + '/' + cCr.total + ' (' + cCr.pct + '%)\\n';
+  md += '- Albumina: ' + cAl.ok + '/' + cAl.total + ' (' + cAl.pct + '%)\\n\\n';
+
+  md += '**Água**\\n';
+  md += '- Meta média/dia (7 dias): ' + avgGoal + ' mL\\n';
+  md += '- Dias que bateram a meta: ' + hits + '/' + days.length + '\\n\\n';
+
+  md += '**Dias com falhas/ausências**\\n';
+  const missed = days.map(dy=>{
+    const l=byDay[dy]; const what=[];
+    if(!l) what.push('sem registro');
+    else {
+      if(!l.minoxidilMorning) what.push('minoxidil manhã');
+      if(!l.minoxidilNight)   what.push('minoxidil noite');
+      if(!l.creatina)         what.push('creatina');
+      if(!l.albumina)         what.push('albumina');
+    }
+    return {date: dy, what};
+  }).filter(x=>x.what.length>0);
+  if(missed.length){ missed.forEach(m => { md += '- ' + new Date(m.date).toLocaleDateString() + ': ' + m.what.join(', ') + '\\n'; }); }
+  else { md += '- Nenhuma falha registrada.\\n'; }
+
+  md += '\\n**Peso**\\n';
+  md += (weighCount>=1? ('- Peso médio (dias pesados): ' + avgW.toFixed(2) + ' kg') : '- Sem dados suficientes.') + '\\n';
+  md += '\\nObservações gerais: (preencha aqui)\\n';
+  return md;
+}
+
+function monthlyReport(ym, logs){
+  const n = daysInMonth(ym);
+  const days = Array.from({length:n}, (_,i)=> ym + '-' + String(i+1).padStart(2,'0'));
+  const byDay = {}; days.forEach(d => byDay[d] = logs[d] || {});
+
+  const comp = (k) => { const total=days.length; const ok=days.filter(dy=> !!byDay[dy]?.[k]).length; return {ok,total,pct: total? Math.round(ok*100/total):0}; };
+  const cMinAM=comp('minoxidilMorning'), cMinPM=comp('minoxidilNight');
+  const cCr=comp('creatina'), cAl=comp('albumina');
+  const min2x = days.filter(dy => byDay[dy].minoxidilMorning && byDay[dy].minoxidilNight).length;
+  const min1x = days.filter(dy => (byDay[dy].minoxidilMorning ^ byDay[dy].minoxidilNight)).length;
+
+  const weights = days.map(dy => byDay[dy].weight).filter(v => typeof v === 'number');
+  const avgW = mean(weights);
+
+  const goals   = days.map(dy => getGoalForDay(dy, logs));
+  const waters  = days.map(dy => byDay[dy].waterMl || 0);
+  const hits    = days.filter((dy,i)=> waters[i] >= goals[i]).length;
+  const avgGoal = Math.round(mean(goals) || 0);
+
+  // Quinzenal: medidas e dobras
+  const days1 = days.slice(0, Math.min(15, days.length));
+  const days2 = days.slice(Math.min(15, days.length));
+  const skSums = days.map(dy => sumSkinfolds(byDay[dy])).filter(x=>x!==null);
+  const avgSk = mean(skSums);
+  const avgSk1 = mean(days1.map(d=>sumSkinfolds(byDay[d])).filter(x=>x!==null));
+  const avgSk2 = mean(days2.map(d=>sumSkinfolds(byDay[d])).filter(x=>x!==null));
+  function avgMeasure(key){
+    return {
+      q1: mean(days1.map(d=>byDay[d]?.measures?.[key]).filter(x=> typeof x==='number')),
+      q2: mean(days2.map(d=>byDay[d]?.measures?.[key]).filter(x=> typeof x==='number'))
+    };
+  }
+  const mTorax = avgMeasure('torax'), mCint = avgMeasure('cintura'), mQuad = avgMeasure('quadril'),
+        mBraco = avgMeasure('braco'), mAnte = avgMeasure('antebraco'), mCoxa = avgMeasure('coxa'), mPant = avgMeasure('panturrilha');
+
+  let md = '# Relatório Mensal — ' + ym + '\\n\\n';
+  md += '**Adesão (mês)**\\n';
+  md += '- Minoxidil 2x/dia: ' + min2x + '/' + days.length + '\\n';
+  md += '- Minoxidil 1x/dia: ' + min1x + '/' + days.length + '\\n';
+  md += '- Minoxidil manhã: ' + cMinAM.ok + '/' + cMinAM.total + ' (' + cMinAM.pct + '%)\\n';
+  md += '- Minoxidil noite: ' + cMinPM.ok + '/' + cMinPM.total + ' (' + cMinPM.pct + '%)\\n';
+  md += '- Creatina: ' + cCr.ok + '/' + cCr.total + ' (' + cCr.pct + '%)\\n';
+  md += '- Albumina: ' + cAl.ok + '/' + cAl.total + ' (' + cAl.pct + '%)\\n\\n';
+  md += '**Água**\\n';
+  md += '- Meta média/dia: ' + avgGoal + ' mL\\n';
+  md += '- Dias que bateram a meta: ' + hits + '/' + days.length + '\\n\\n';
+  md += '**Dobras (soma)**\\n';
+  md += (avgSk!==null? ('- Média no mês: ' + avgSk.toFixed(1) + ' mm'): '- Sem dados suficientes.') + '\\n';
+  md += (avgSk1!==null? ('- 1ª quinzena: ' + avgSk1.toFixed(1) + ' mm'): '- 1ª quinzena: sem dados.') + '\\n';
+  md += (avgSk2!==null? ('- 2ª quinzena: ' + avgSk2.toFixed(1) + ' mm'): '- 2ª quinzena: sem dados.') + '\\n\\n';
+
+  function line(k, lab){
+    const a = avgMeasure(k);
+    const s1 = (a.q1!==null? a.q1.toFixed(1)+' cm':'sem dados');
+    const s2 = (a.q2!==null? a.q2.toFixed(1)+' cm':'sem dados');
+    md += '- ' + lab + ': 1ª ' + s1 + ' | 2ª ' + s2 + '\\n';
+  }
+  md += '**Medidas corporais (médias quinzenais)**\\n';
+  line('torax','Tórax'); line('cintura','Cintura'); line('quadril','Quadril'); line('braco','Braço'); line('antebraco','Antebraço'); line('coxa','Coxa'); line('panturrilha','Panturrilha');
+  md += '\\n**Peso**\\n';
+  md += (avgW!==null? ('- Peso médio no mês (apenas dias pesados): ' + avgW.toFixed(2) + ' kg') : '- Sem dados suficientes.') + '\\n\\n';
+  md += 'Observações gerais: (preencha aqui)\\n';
+  return md;
+}
+
+// Relatório semestral (6 meses a partir de um mês inicial)
+function nextYM(ym){ const [y,m]=ym.split('-').map(Number); const d=new Date(y, m-1, 1); d.setMonth(d.getMonth()+1); return d.toISOString().slice(0,7); }
+function monthsBetween(ymStart, count){ const arr=[ymStart]; for(let i=1;i<count;i++){ arr.push(nextYM(arr[i-1])); } return arr; }
+function semestralReport(ymStart, logs){
+  const months = monthsBetween(ymStart, 6);
+  const allDays = months.flatMap(ym => Array.from({length:daysInMonth(ym)}, (_,i)=> ym+'-'+String(i+1).padStart(2,'0')));
+  const byDay = {}; allDays.forEach(d => byDay[d] = logs[d] || {});
+
+  const min2x = allDays.filter(dy => byDay[dy].minoxidilMorning && byDay[dy].minoxidilNight).length;
+  const min1x = allDays.filter(dy => (byDay[dy].minoxidilMorning ^ byDay[dy].minoxidilNight)).length;
+  const crDays = allDays.filter(dy => !!byDay[dy].creatina).length;
+  const albDays = allDays.filter(dy => !!byDay[dy].albumina).length;
+
+  const weights = allDays.map(dy => byDay[dy].weight).filter(v => typeof v === 'number');
+  const avgW = mean(weights);
+
+  const goals   = allDays.map(dy => getGoalForDay(dy, logs));
+  const waters  = allDays.map(dy => byDay[dy].waterMl || 0);
+  const hits    = allDays.filter((dy,i)=> waters[i] >= goals[i]).length;
+  const avgGoal = Math.round(mean(goals) || 0);
+
+  // médias mensais (peso) para ver tendência
+  const lines=[];
+  months.forEach(ym => {
+    const ds = Array.from({length:daysInMonth(ym)}, (_,i)=> ym+'-'+String(i+1).padStart(2,'0'));
+    const w = mean(ds.map(d=> byDay[d].weight).filter(v=> typeof v==='number'));
+    lines.push('- ' + ym + ': ' + (w!==null? w.toFixed(2)+' kg': 'sem dados'));
+  });
+
+  let md = '# Relatório Semestral — ' + months[0] + ' a ' + months[5] + '\\n\\n';
+  md += '**Adesão (6 meses)**\\n';
+  md += '- Minoxidil 2x/dia: ' + min2x + '/' + allDays.length + ' dias\\n';
+  md += '- Minoxidil 1x/dia: ' + min1x + '/' + allDays.length + ' dias\\n';
+  md += '- Creatina (dias marcados): ' + crDays + '/' + allDays.length + '\\n';
+  md += '- Albumina (dias marcados): ' + albDays + '/' + allDays.length + '\\n\\n';
+  md += '**Água**\\n';
+  md += '- Meta média/dia: ' + avgGoal + ' mL\\n';
+  md += '- Dias que bateram a meta: ' + hits + '/' + allDays.length + '\\n\\n';
+  md += '**Peso médio (apenas dias pesados)**\\n';
+  md += (avgW!==null? ('- Média no semestre: ' + avgW.toFixed(2) + ' kg') : '- Sem dados suficientes.') + '\\n';
+  md += lines.join('\\n') + '\\n\\n';
+  md += 'Observações gerais: (preencha aqui)\\n';
+  return md;
+}
+
+// Bulking report box inside Bulking tab
+async function renderBulkingReportBox(){
+  const logs = await vaultGet('logs', {});
+  const settings = await loadSettings();
+  const iso = $('#b_refday').value || todayISO();
+  const md = weekReport(iso, logs, settings);
+  $('#b_report').textContent = md;
+}
+// --- Semanal (Resumo da Semana) ---
+async function renderSemanal(){
+try{
+  const logs = await vaultGet('logs', {});
+  const settings = await loadSettings();
+  const iso = $('#sem-refday').value || todayISO();
+
+  // Semana alvo
+  const d = new Date(iso);
+  const s = startOfWeek(d), e = endOfWeek(d);
+  const days = [];
+  for(let i=0;i<7;i++){ const dt=new Date(s); dt.setUTCDate(s.getUTCDate()+i); days.push(fmtDate(dt)); }
+  const byDay = {}; days.forEach(day => byDay[day] = logs[day] || {});
+
+  // Água
+  const waters  = days.map(dy => byDay[dy].waterMl || 0);
+  const goals   = days.map(dy => getGoalForDay(dy, logs));
+  const hits    = days.filter((dy,i)=> waters[i] >= goals[i]).length;
+  const avgGoal = Math.round(mean(goals) || 0);
+  (function(tmp){ if(tmp) tmp.innerHTML = '<div><b>'+hits+'</b> / 7 dias bateram a meta</div><div class="muted">Meta média: '+avgGoal+' mL</div>'; })(document.getElementById('sem-agua'));
+
+  // Suplementos
+  const creatDays = days.filter(dy => !!byDay[dy].creatina).length;
+  const albDays   = days.filter(dy => !!byDay[dy].albumina).length;
+  (function(tmp){ if(tmp) tmp.innerHTML = '<div>Creatina: <b>'+creatDays+'</b>/7</div><div>Albumina: <b>'+albDays+'</b>/7</div>'; })(document.getElementById('sem-sups'));
+
+  // Minoxidil
+  // Listas de faltas (sem marcação)
+  const missCreat = days.filter(dy => !byDay[dy].creatina).map(shortDM);
+  const missAlb   = days.filter(dy => !byDay[dy].albumina).map(shortDM);
+  const missMinox = days.filter(dy => !(!!byDay[dy].minoxidilMorning || !!byDay[dy].minoxidilNight)).map(shortDM);
+
+  // Escrever no box de suplementos
+  (function(box){
+    if(!box) return;
+    const extra = document.createElement('div');
+    extra.className = 'muted';
+    extra.style.marginTop = '6px';
+    extra.textContent = 'Sem creatina: ' + (missCreat.length? missCreat.join(', '): '—') + ' • Sem albumina: ' + (missAlb.length? missAlb.join(', '): '—');
+    box.appendChild(extra);
+  })(document.querySelector('#sem-sups'));
+
+  // Escrever no box de minoxidil
+  (function(box){
+    if(!box) return;
+    const extra = document.createElement('div');
+    extra.className = 'muted';
+    extra.style.marginTop = '6px';
+    extra.textContent = 'Dias sem minoxidil: ' + (missMinox.length? missMinox.join(', '): '—');
+    box.appendChild(extra);
+  })(document.querySelector('#sem-minox'));
+  // Streaks na semana
+  const arrCreat = days.map(dy => !!byDay[dy].creatina);
+  const arrAlb   = days.map(dy => !!byDay[dy].albumina);
+  const arrMinox = days.map(dy => !!(byDay[dy].minoxidilMorning || byDay[dy].minoxidilNight));
+  const stC = longestStreak(arrCreat), stA = longestStreak(arrAlb), stM = longestStreak(arrMinox);
+
+  // Linhas de streak nos cards
+  (function(box){
+    if(!box) return;
+    const extra = document.createElement('div');
+    extra.className = 'muted';
+    extra.textContent = 'Streak atual: '+stC.current+'d • Máx: '+stC.max+'d  |  Streak atual (Alb): '+stA.current+'d • Máx: '+stA.max+'d';
+    box.appendChild(extra);
+  })(document.querySelector('#sem-sups'));
+
+  (function(box){
+    if(!box) return;
+    const extra = document.createElement('div');
+    extra.className = 'muted';
+    extra.textContent = 'Streak atual: '+stM.current+'d • Máx: '+stM.max+'d';
+    box.appendChild(extra);
+  })(document.querySelector('#sem-minox'));
+
+
+  const min2x = days.filter(dy => !!byDay[dy].minoxidilMorning && !!byDay[dy].minoxidilNight).length;
+  const min1x = days.filter(dy => (!!byDay[dy].minoxidilMorning) ^ (!!byDay[dy].minoxidilNight)).length;
+  (function(tmp){ if(tmp) tmp.innerHTML = '<div>2x/dia: <b>'+min2x+'</b>/7</div><div>1x/dia: <b>'+min1x+'</b>/7</div>'; })(document.getElementById('sem-minox'));
+
+  // Bulking
+  const r = computeBulking(iso, logs, settings);
+                    (r.bateu===false) ? '<span class="badge no">Não atingida</span>' : '';
+  (function(tmp){ if(tmp){ tmp.innerHTML = 'Bulking — Semana ' + ((r.bateu===true)?'<span class="badge ok">Atingida</span>':(r.bateu===false)?'<span class="badge no">Não atingida</span>':''); }})(document.querySelector('#sem-bulk div'));
+
+  // resumo enxuto solicitado
+  const avgTxt = (r.cur.count>=1? r.cur.avg.toFixed(2)+' kg':'sem pesagens');
+  let weeksTxt = '—';
+  if (r.semanasRestantes===0) weeksTxt = 'Meta alcançada ✅';
+  else if (typeof r.semanasRestantes==='number') weeksTxt = String(r.semanasRestantes);
+
+  let deltaMetaTxt = '—';
+  if (typeof r.cur.avg==='number' && typeof r.metaSemana==='number'){
+    const diff = r.cur.avg - r.metaSemana;
+    if (diff >= 0) deltaMetaTxt = '+'+diff.toFixed(2)+' kg acima da meta';
+    else deltaMetaTxt = 'Faltou '+Math.abs(diff).toFixed(2)+' kg para bater a meta';
+  }
+
+  (function(tmp){
+    if(tmp){
+      tmp.innerHTML = '<div class="muted">Semanas restantes: <b>'+weeksTxt+'</b></div>' +
+                      '<div>Peso médio (dias pesados): <b>'+avgTxt+'</b></div>' +
+                      '<div>'+deltaMetaTxt+'</div>';
+    }
+  })(document.getElementById('sem-bulk-box'));
+
+
+                    (r.bateu===false) ? '<span class="badge no">Não atingida</span>' : '';
+  (function(tmp){ if(tmp){ tmp.innerHTML = 'Bulking — Semana ' + ((r.bateu===true)?'<span class="badge ok">Atingida</span>':(r.bateu===false)?'<span class="badge no">Não atingida</span>':''); }})(document.querySelector('#sem-bulk div'));
+
+  // Markdown completo (reaproveita weekReport)
+  const md = weekReport(iso, logs, settings);
+  (function(tmp){ if(tmp) tmp.textContent = md; })(document.getElementById('sem-md'));
+} catch(e){ console.error('renderSemanal erro:', e); }
+}
+
+
+
+async function updateRegBulkInfo(){
+  try{
+    const logs = await vaultGet('logs', {});
+    const settings = await loadSettings();
+    const iso = $('#date').value || todayISO();
+    const r = computeBulking(iso, logs, settings);
+    let weeks = '—';
+    if (r.semanasRestantes===0) weeks = 'Meta alcançada ✅';
+    else if (typeof r.semanasRestantes==='number') weeks = String(r.semanasRestantes);
+    const targetTxt = (typeof r.target==='number') ? r.target.toFixed(2)+' kg' : '—';
+    const avgTxt = (typeof r.cur.avg==='number') ? r.cur.avg.toFixed(2)+' kg' : '—';
+    const box = $('#reg_bulk_info');
+    if(box){
+      box.innerHTML = '<div>Alvo: <b>'+targetTxt+'</b></div>' +
+                      '<div>Peso médio da semana: <b>'+avgTxt+'</b></div>' +
+                      '<div>Semanas restantes: <b>'+weeks+'</b></div>';
+    }
+  }catch(e){ /* noop */ }
+}
+
+async function hydrateRegistroMeta(){
+  const s = await loadSettings();
+  if($('#reg_target')) $('#reg_target').value = (typeof s.bulkingTarget==='number' ? s.bulkingTarget : '');
+  await updateRegBulkInfo();
+}
+
+// Gráficos (Canvas simples)
+function drawLineChart(ctx, xs, ys, label){
+  const W = ctx.canvas.width, H = ctx.canvas.height;
+  ctx.clearRect(0,0,W,H);
+  const pad = 30;
+  const x0 = pad, y0 = H - pad, x1 = W - pad, y1 = pad;
+  ctx.strokeStyle = '#cbd5e1';
+  ctx.lineWidth = 1;
+  ctx.beginPath(); ctx.moveTo(x0, y0); ctx.lineTo(x0, y1); ctx.lineTo(x1, y1); ctx.stroke();
+  if(ys.length===0){ ctx.fillStyle='#64748b'; ctx.fillText('Sem dados', x0+10, (y0+y1)/2); return; }
+  const minY = Math.min(...ys), maxY = Math.max(...ys);
+  const range = (maxY-minY)||1;
+  function X(i){ return x0 + (x1-x0) * (i/(xs.length-1||1)); }
+  function Y(v){ return y0 - (y0-y1) * ((v-minY)/range); }
+  ctx.fillStyle = '#334155'; ctx.font='12px system-ui';
+  ctx.fillText(label, x0, y1-8);
+  ctx.fillText(String(maxY), x0+4, y1+8);
+  ctx.fillText(String(minY), x0+4, y0);
+  ctx.strokeStyle = '#0f172a'; ctx.lineWidth = 2;
+  ctx.beginPath();
+  ys.forEach((v,i)=>{ const x=X(i), y=Y(v); if(i===0) ctx.moveTo(x,y); else ctx.lineTo(x,y); });
+  ctx.stroke();
+  ctx.fillStyle = '#0f172a';
+  ys.forEach((v,i)=>{ const x=X(i), y=Y(v); ctx.beginPath(); ctx.arc(x,y,2.5,0,Math.PI*2); ctx.fill(); });
+}
+
+async function drawChart(){
+  const ym = $('#chart-mes').value;
+  if(!ym) return;
+  const logs = await vaultGet('logs', {});
+  const n = daysInMonth(ym);
+  const xs = [], ys = [];
+  const metric = $('#chart-metric').value;
+  for(let i=1;i<=n;i++){
+    const d = String(i).padStart(2,'0'); const iso = ym+'-'+d; const rec = logs[iso];
+    xs.push(d);
+    let v = null;
+    if(metric==='weight') v = rec?.weight ?? null;
+    else if(metric==='sumSkinfolds') v = sumSkinfolds(rec);
+    else v = rec?.measures?.[metric] ?? null;
+    ys.push(typeof v==='number'? v: null);
+  }
+  while(xs.length && ys[0]===null){ xs.shift(); ys.shift(); }
+  while(xs.length && ys[xs.length-1]===null){ xs.pop(); ys.pop(); }
+  const canvas = document.getElementById('chart');
+  const ctx = canvas.getContext('2d');
+  const dpr = window.devicePixelRatio||1;
+  canvas.width = canvas.clientWidth * dpr;
+  canvas.height = canvas.clientHeight * dpr;
+  ctx.scale(dpr,dpr);
+  drawLineChart(ctx, xs, ys.filter(v=>v!==null), $('#chart-metric').selectedOptions[0].textContent||'');
+}
+
+// Build reports
+async function buildReport(){
+  const logs = await vaultGet('logs', {});
+  const settings = await loadSettings();
+  const md = weekReport($('#ref-day').value || todayISO(), logs, settings);
+  $('#reportBox').textContent = md;
+}
+async function buildMonthly(){
+  const logs = await vaultGet('logs', {});
+  const ym = $('#mensal-mes').value;
+  const daysM = Array.from({length: daysInMonth(ym)}, (_,i)=> ym+'-'+String(i+1).padStart(2,'0'));
+
+  // Arrays booleanos por dia
+  const goalsM = daysM.map(dy => getGoalForDay(dy, logs));
+  const watersM = daysM.map(dy => (logs[dy]?.waterMl) || 0);
+  const A = {
+    aguaHit: daysM.map((dy,i) => watersM[i] >= goalsM[i]),
+    creat:   daysM.map(dy => !!(logs[dy] && logs[dy].creatina)),
+    album:   daysM.map(dy => !!(logs[dy] && logs[dy].albumina)),
+    minox:   daysM.map(dy => !!(logs[dy] && (logs[dy].minoxidilMorning || logs[dy].minoxidilNight))),
+  };
+
+  // Contagens
+  const C = {
+    aguaHit: A.aguaHit.filter(Boolean).length,
+    creat:   A.creat.filter(Boolean).length,
+    album:   A.album.filter(Boolean).length,
+    minox:   A.minox.filter(Boolean).length,
+  };
+
+  // Streaks
+  const S = {
+    aguaHit: longestStreak(A.aguaHit),
+    creat:   longestStreak(A.creat),
+    album:   longestStreak(A.album),
+    minox:   longestStreak(A.minox),
+  };
+
+  // Faltas (datas)
+  const miss = {
+    creat: daysM.filter((d,i)=> !A.creat[i]).map(shortDM),
+    album: daysM.filter((d,i)=> !A.album[i]).map(shortDM),
+    minox: daysM.filter((d,i)=> !A.minox[i]).map(shortDM),
+  };
+
+  // Markdown *curto e visual*
+  let md  = '# Mensal — ' + ym + '\\n\\n';
+
+  md += '**Água**\\n';
+  md += '- Meta batida: ' + bar(C.aguaHit, daysM.length, 24) + ' ' + C.aguaHit + '/' + daysM.length + '  • Streak atual: ' + S.aguaHit.current + 'd  • Máx: ' + S.aguaHit.max + 'd\\n\\n';
+
+  md += '**Creatina**\\n';
+  md += '- Adesão: ' + bar(C.creat, daysM.length, 24) + ' ' + C.creat + '/' + daysM.length + '  • Streak atual: ' + S.creat.current + 'd  • Máx: ' + S.creat.max + 'd\\n';
+  md += '- Dias sem: ' + compactList(miss.creat, 12) + '\\n\\n';
+
+  md += '**Albumina**\\n';
+  md += '- Adesão: ' + bar(C.album, daysM.length, 24) + ' ' + C.album + '/' + daysM.length + '  • Streak atual: ' + S.album.current + 'd  • Máx: ' + S.album.max + 'd\\n';
+  md += '- Dias sem: ' + compactList(miss.album, 12) + '\\n\\n';
+
+  md += '**Minoxidil**\\n';
+  md += '- Adesão: ' + bar(C.minox, daysM.length, 24) + ' ' + C.minox + '/' + daysM.length + '  • Streak atual: ' + S.minox.current + 'd  • Máx: ' + S.minox.max + 'd\\n';
+  md += '- Dias sem: ' + compactList(miss.minox, 12) + '\\n';
+
+  $('#mensalBox').textContent = md;
+
+}
+async function buildSemestral(){
+  const logs = await vaultGet('logs', {});
+  const ym = $('#sem-ini').value;
+  if(!ym){ $('#semBox').textContent = ''; return; }
+  const md = semestralReport(ym, logs);
+  $('#semBox').textContent = md;
+}
+
+// Fotos (antes/depois da aba "Fotos")
+async function setCompare(ym){
+  const recB = await vaultGet('photo:'+ym+':beforeFront', null);
+  const recA = await vaultGet('photo:'+ym+':afterFront', null);
+  $('#img-before').src = recB? ('data:image/*;base64,'+recB.b64) : '';
+  $('#img-after').src  = recA? ('data:image/*;base64,'+recA.b64) : '';
+  $('#after-wrap').style.width = '50%';
+}
+
+// Backup
+async function exportBackup(){
+  const keys = await idbKeys(); const data = {};
+  for(const k of keys){ data[k] = await idbGet(k); }
+  const blob = new Blob([JSON.stringify({v:5, salt: toB64(kdfSalt), store: data}, null, 2)], {type:'application/json'});
+  const a = document.createElement('a'); a.href=URL.createObjectURL(blob); a.download='backup.dpb'; a.click(); URL.revokeObjectURL(a.href);
+}
+async function importBackup(file){
+  const txt = await file.text(); const j = JSON.parse(txt);
+  if(!j || !j.store || !j.salt){ alert('Arquivo inválido.'); return; }
+  kdfSalt = fromB64(j.salt); localStorage.setItem('dp_salt', toB64(kdfSalt));
+  const open = db.transaction(STORE,'readwrite').objectStore(STORE);
+  await new Promise((res,rej)=>{ const clr = open.clear(); clr.onsuccess=()=>res(); clr.onerror=()=>rej(clr.error); });
+  for(const [k,v] of Object.entries(j.store)){ await idbSet(k, v); }
+  alert('Backup importado. Use o PIN correspondente.');
+}
+
+// Init
+async function appInit(){
+  db = await idbOpen();
+  const saltB64 = localStorage.getItem('dp_salt');
+  if(!saltB64){
+    kdfSalt = crypto.getRandomValues(new Uint8Array(16));
+    localStorage.setItem('dp_salt', toB64(kdfSalt));
+    $('#pin-setup').classList.remove('hidden');
+  } else {
+    kdfSalt = fromB64(saltB64);
+    $('#pin-login').classList.remove('hidden');
+  }
+
+  // UI
+  $('#aboutBtn').onclick = ()=> alert('Arquivo HTML offline; dados criptografados no aparelho. Use “Adicionar à tela inicial” para atalho.');
+  $$('.tabs button').forEach(b => b.onclick = ()=> {switchTab(b.dataset.tab); if(b.dataset.tab==='bulking'){renderBulkingCard();} if(b.dataset.tab==='semanal'){renderSemanal();}});
+  $('#savePinBtn').onclick = async ()=>{
+    const p1=$('#pin1').value.trim(), p2=$('#pin2').value.trim();
+    if(!p1 || p1!==p2 || p1.length<4){ alert('PIN inválido.'); return; }
+    gKey = await deriveKey(p1, kdfSalt.buffer);
+    await vaultSet('logs', {});
+    await saveSettings(defaultSettings);
+    $('#gate').classList.add('hidden');
+    $('#content').classList.remove('hidden');
+    const m = todayISO().slice(0,7);
+    $('#date').value = todayISO(); $('#mes').value = m; $('#foto-mes').value = m; $('#album-mes').value = m; $('#chart-mes').value = m; $('#ref-day').value = todayISO(); $('#mensal-mes').value = m; $('#b_refday').value = todayISO(); $('#sem-ini').value = m; $('#sem-refday').value = todayISO();
+    await loadDay(todayISO()); await renderMonth($('#mes').value); await setCompare($('#foto-mes').value); await renderAlbum($('#album-mes').value); await drawChart(); await buildReport(); await buildMonthly(); await buildSemestral(); await hydrateBulkingSettings(); await hydrateRegistroMeta(); await renderBulkingCard(); await renderSemanal();
+  };
+  $('#unlockBtn').onclick = async ()=>{
+    const p=$('#pin-login-input').value.trim(); if(!p){ alert('Digite o PIN'); return; }
+    try{
+      gKey = await deriveKey(p, kdfSalt.buffer);
+      await vaultGet('logs', {});
+      const s = await loadSettings(); if(!s) await saveSettings(defaultSettings);
+      $('#gate').classList.add('hidden');
+      $('#content').classList.remove('hidden');
+      const m = todayISO().slice(0,7);
+      $('#date').value = todayISO(); $('#mes').value = m; $('#foto-mes').value = m; $('#album-mes').value = m; $('#chart-mes').value = m; $('#ref-day').value = todayISO(); $('#mensal-mes').value = m; $('#b_refday').value = todayISO(); $('#sem-ini').value = m;
+      await loadDay(todayISO()); await renderMonth($('#mes').value); await setCompare($('#foto-mes').value); await renderAlbum($('#album-mes').value); await drawChart(); await buildReport(); await buildMonthly(); await buildSemestral(); await hydrateBulkingSettings(); await hydrateRegistroMeta(); await renderBulkingCard(); await renderSemanal();
+    }catch{ alert('PIN incorreto'); }
+  };
+
+  // Registro
+  $('#saveDayBtn').onclick = async ()=>{ await saveDay(); alert('Salvo.'); };
+  $('#todayBtn').onclick = ()=> loadDay(todayISO());
+  $('#zerarAgua').onclick = async ()=>{ $('#agua').value = 0; refreshWaterProgress(); await saveDay(); };
+  $('#add150').onclick = ()=> addWater(150);
+  $('#add200').onclick = ()=> addWater(200);
+  $('#add250').onclick = ()=> addWater(250);
+  $('#add500').onclick = ()=> addWater(500);
+  $('#agua').oninput = refreshWaterProgress;
+  $('#aguaGoal').oninput = refreshWaterProgress;
+  $('#date').onchange = async ()=>{ await loadDay($('#date').value); await updateRegBulkInfo(); };
+  $('#sugerirMeta').onclick = async ()=>{
+    const iso = $('#date').value || todayISO();
+    const logs = await vaultGet('logs', {});
+    const sug = suggestWaterGoal(iso, logs);
+    $('#aguaGoal').value = sug;
+    refreshWaterProgress();
+  };
+  $('#wipeBtn').onclick = async ()=>{ if(confirm('Apagar TODOS os dados e PIN?')){ await idbClear(); localStorage.removeItem('dp_salt'); location.reload(); }};
+
+  // Mês
+  $('#mes').onchange = (e)=> renderMonth(e.target.value);
+
+  // Fotos comparação
+  $('#foto-mes').onchange = (e)=> setCompare(e.target.value);
+  $('#bf').onchange = async (e)=>{ const f=e.target.files?.[0]; if(!f) return; const b64=await fileToB64(f); await vaultSet('photo:'+$('#foto-mes').value+':beforeFront',{b64}); await setCompare($('#foto-mes').value); };
+  $('#af').onchange = async (e)=>{ const f=e.target.files?.[0]; if(!f) return; const b64=await fileToB64(f); await vaultSet('photo:'+$('#foto-mes').value+':afterFront',{b64}); await setCompare($('#foto-mes').value); };
+  $('#slider').oninput = (e)=> { $('#after-wrap').style.width = e.target.value + '%'; };
+
+  // Galeria
+  $('#album-mes').onchange = ()=> renderAlbum($('#album-mes').value);
+  $('#album-add').onchange = async (e)=>{
+    const files = Array.from(e.target.files||[]);
+    if(!files.length) return;
+    const ym = $('#album-mes').value;
+    const arr = await albumList(ym);
+    for(const f of files){
+      const b64 = await fileToB64(f);
+      arr.push({id: crypto.randomUUID(), b64, createdAt: new Date().toISOString()});
+    }
+    await albumSave(ym, arr);
+    await renderAlbum(ym);
+    e.target.value = '';
+  };
+  $('#album-clear').onclick = async ()=>{
+    const ym = $('#album-mes').value;
+    if(confirm('Apagar todas as fotos do mês '+ym+'?')){
+      await albumSave(ym, []);
+      await renderAlbum(ym);
+    }
+  };
+
+  // Gráficos
+  $('#chart-mes').onchange = drawChart;
+  $('#chart-metric').onchange = drawChart;
+
+  // Relatórios
+  $('#ref-day').onchange = async ()=>{ await buildReport(); await renderBulkingCard(); };
+  $('#copyReportBtn').onclick = async ()=>{ await navigator.clipboard.writeText($('#reportBox').textContent||''); alert('Relatório copiado.'); };
+  $('#downloadReportBtn').onclick = ()=>{ const blob=new Blob([$('#reportBox').textContent||''],{type:'text/markdown'}); const a=document.createElement('a'); a.href=URL.createObjectURL(blob); a.download='relatorio-semanal.md'; a.click(); URL.revokeObjectURL(a.href); };
+
+  $('#mensal-mes').onchange = buildMonthly;
+  $('#copyMensalBtn').onclick = async ()=>{ await navigator.clipboard.writeText($('#mensalBox').textContent||''); alert('Relatório mensal copiado.'); };
+  $('#downloadMensalBtn').onclick = ()=>{ const blob=new Blob([$('#mensalBox').textContent||''],{type:'text/markdown'}); const a=document.createElement('a'); a.href=URL.createObjectURL(blob); a.download='relatorio-mensal.md'; a.click(); URL.revokeObjectURL(a.href); };
+
+  // Semestral
+  $('#sem-ini').onchange = buildSemestral;
+  $('#copySemBtn').onclick = async ()=>{ await navigator.clipboard.writeText($('#semBox').textContent||''); alert('Relatório semestral copiado.'); };
+  $('#downSemBtn').onclick = ()=>{ const blob=new Blob([$('#semBox').textContent||''],{type:'text/markdown'}); const a=document.createElement('a'); a.href=URL.createObjectURL(blob); a.download='relatorio-semestral.md'; a.click(); URL.revokeObjectURL(a.href); };
+  // Semanal
+  $('#sem-refday').onchange = async ()=>{ await renderSemanal(); };
+  $('#sem-copy').onclick = async ()=>{ await navigator.clipboard.writeText($('#sem-md').textContent||''); alert('Resumo semanal copiado.'); };
+  $('#sem-down').onclick = ()=>{ const blob=new Blob([$('#sem-md').textContent||''],{type:'text/markdown'}); const a=document.createElement('a'); a.href=URL.createObjectURL(blob); a.download='resumo-semanal.md'; a.click(); URL.revokeObjectURL(a.href); };
+
+
+  // Registro — meta de peso
+  if($('#reg_save_target')){
+    $('#reg_save_target').onclick = async ()=>{
+      const s = await loadSettings();
+      { const v = parseNum($('#reg_target').value); s.bulkingTarget = isNaN(v) ? null : v; }
+      await saveSettings(s);
+      await renderBulkingCard();
+      await buildReport();
+      await renderSemanal();
+      await updateRegBulkInfo();
+      alert('Meta de peso salva.');
+    };
+  }
+
+  // Bulking settings handlers
+  async function hydrateBulkingSettings(){
+    const s = await loadSettings();
+    $('#b_target').value = (typeof s.bulkingTarget==='number'? s.bulkingTarget : '');
+    $('#b_coef').value = (s.bulkingCoef*100).toFixed(2).replace('.',',');
+    $('#b_refmode').value = s.bulkingRefMode;
+    $('#b_baseline').value = (typeof s.bulkingBaseline==='number'? s.bulkingBaseline : '');
+  }
+  function parsePct(v){ // accepts "0,5" or "0.5"
+    if(typeof v!=='string') return Number(v)||0;
+    return Number(v.replace(',','.'))||0;
+  }
+  
+function parseNum(v){
+  if (v === null || v === undefined) return NaN;
+  if (typeof v !== 'string') return Number(v);
+  const t = v.replace(',', '.');
+  const n = Number(t);
+  return n;
+}
+$('#b_save').onclick = async ()=>{
+    const cur = await loadSettings();
+    const s = {
+      bulkingCoef: parsePct(String($('#b_coef').value))/100 || cur.bulkingCoef,
+      bulkingRefMode: $('#b_refmode').value || cur.bulkingRefMode,
+      bulkingBaseline: (function(){ const v=parseNum($('#b_baseline').value); return isNaN(v)? null : v; })(),
+      bulkingTarget: (function(){ const v=parseNum($('#b_target').value); return isNaN(v)? null : v; })()
+    };
+    await saveSettings(s);
+    await renderBulkingCard();
+    await buildReport();
+    alert('Configurações salvas.');
+  };
+  $('#b_reset').onclick = async ()=>{
+    await saveSettings(defaultSettings);
+    await hydrateBulkingSettings();
+    await renderBulkingCard();
+    await buildReport();
+  };
+
+  $('#b_refday').onchange = async ()=>{ await renderBulkingCard(); };
+
+  // defaults na primeira renderização da UI desbloqueada
+  const m = todayISO().slice(0,7);
+  $('#date').value = todayISO(); $('#mes').value = m; $('#foto-mes').value = m; $('#album-mes').value = m; $('#chart-mes').value = m; $('#ref-day').value = todayISO(); $('#mensal-mes').value = m; $('#b_refday').value = todayISO(); $('#sem-ini').value = m; $('#sem-refday').value = todayISO();
+}
+
+// Galeria helpers
+async function albumList(ym){ const rec = await vaultGet('album:'+ym, null); return Array.isArray(rec)? rec: []; }
+async function albumSave(ym, arr){ await vaultSet('album:'+ym, arr); }
+function fileToB64(file){ return new Promise((res,rej)=>{ const fr=new FileReader(); fr.onload=()=>res(String(fr.result).split(',')[1]); fr.onerror=rej; fr.readAsDataURL(file); }); }
+async function renderAlbum(ym){
+  const grid = $('#album-grid');
+  const arr = await albumList(ym);
+  if(!arr.length){ grid.innerHTML = '<div class="muted">Sem fotos neste mês.</div>'; return; }
+  grid.innerHTML = '';
+  arr.forEach(item => {
+    const d = document.createElement('div'); d.className='thumb';
+    d.innerHTML = '<img src="data:image/*;base64,'+item.b64+'"/>' +
+      '<div class="bar"><span>'+new Date(item.createdAt).toLocaleDateString()+'</span><span><button data-id="'+item.id+'">Apagar</button></span></div>';
+    grid.appendChild(d);
+  });
+  grid.querySelectorAll('button[data-id]').forEach(btn => {
+    btn.onclick = async ()=>{
+      const id = btn.getAttribute('data-id');
+      const arr = await albumList(ym);
+      const next = arr.filter(x => x.id !== id);
+      await albumSave(ym, next);
+      await renderAlbum(ym);
+    };
+  });
+}
+
+// Garante que o PIN apareça sempre ao abrir a página (mesmo com cache)
+document.addEventListener('DOMContentLoaded', ()=>{
+  appInit().catch(err=>{
+    console.error('Falha ao iniciar:', err);
+    alert('Falha ao iniciar o app. Recarregue a página.');
+  });
+});
+
+function switchTab(name){
+  $$('.tabs button').forEach(b=>b.classList.remove('active'));
+  $$('.tab').forEach(t=>t.classList.remove('active'));
+  document.querySelector('.tabs button[data-tab="'+name+'"]')?.classList.add('active');
+  $('#tab-'+name)?.classList.add('active');
+}
+</script>
+</body>
+</html>
